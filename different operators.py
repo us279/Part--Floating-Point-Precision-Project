@@ -24,8 +24,6 @@ def test_floating_point_precision_range_with_plot(min_large_num, max_large_num, 
     print(f"Testing floating point precision for a range of large numbers with a constant small number: {small_num}\n")
 
     for large_num in large_nums:
-        # Step 2: Perform addition, multiplication, and division with different precisions
-        
         # ---- Addition ----
         large_num_16 = np.float16(large_num)
         small_num_16 = np.float16(small_num)
@@ -87,13 +85,7 @@ def test_floating_point_precision_range_with_plot(min_large_num, max_large_num, 
         abs_errors_32_div.append(abs_error_32_div)
         rel_errors_32_div.append(rel_error_32_div)
 
-    # Print results for addition
-    print(f"{'Large Number':>15} {'Abs Error (16-bit)':>20} {'Rel Error (16-bit)':>20} {'Abs Error (32-bit)':>20} {'Rel Error (32-bit)':>20}")
-    print("-" * 95)
-    for i in range(num_steps):
-        print(f"{large_nums[i]:>15.1e} {abs_errors_16_add[i]:>20.1e} {rel_errors_16_add[i]:>20.1e} {abs_errors_32_add[i]:>20.1e} {rel_errors_32_add[i]:>20.1e}")
-
-    # Plot the results
+    # Plot individual results for each operation
     plt.figure(figsize=(12, 12))
 
     # Plot absolute errors for addition
@@ -165,5 +157,46 @@ def test_floating_point_precision_range_with_plot(min_large_num, max_large_num, 
     plt.tight_layout()
     plt.show()
 
+    # Now create the combined plot for all operations
+    plt.figure(figsize=(12, 8))
+
+    # Plot combined absolute errors
+    plt.subplot(2, 1, 1)
+    plt.plot(large_nums, abs_errors_16_add, label="Abs Error (16-bit Addition)", marker='o', linestyle='--')
+    plt.plot(large_nums, abs_errors_32_add, label="Abs Error (32-bit Addition)", marker='o', linestyle='-')
+    plt.plot(large_nums, abs_errors_16_mul, label="Abs Error (16-bit Multiplication)", marker='x', linestyle='--')
+    plt.plot(large_nums, abs_errors_32_mul, label="Abs Error (32-bit Multiplication)", marker='x', linestyle='-')
+    plt.plot(large_nums, abs_errors_16_div, label="Abs Error (16-bit Division)", marker='s', linestyle='--')
+    plt.plot(large_nums, abs_errors_32_div, label="Abs Error (32-bit Division)", marker='s', linestyle='-')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.title("Absolute Errors for All Operations")
+    plt.xlabel("Large Number (log scale)")
+    plt.ylabel("Absolute Error (log scale)")
+    plt.legend()
+
+    # Plot combined relative errors
+    plt.subplot(2, 1, 2)
+    plt.plot(large_nums, rel_errors_16_add, label="Rel Error (16-bit Addition)", marker='o', linestyle='--')
+    plt.plot(large_nums, rel_errors_32_add, label="Rel Error (32-bit Addition)", marker='o', linestyle='-')
+    plt.plot(large_nums, rel_errors_16_mul, label="Rel Error (16-bit Multiplication)", marker='x', linestyle='--')
+    plt.plot(large_nums, rel_errors_32_mul, label="Rel Error (32-bit Multiplication)", marker='x', linestyle='-')
+    plt.plot(large_nums, rel_errors_16_div, label="Rel Error (16-bit Division)", marker='s', linestyle='--')
+    plt.plot(large_nums, rel_errors_32_div, label="Rel Error (32-bit Division)", marker='s', linestyle='-')
+    plt.xscale('log')
+    plt.yscale('log')
+    plt.title("Relative Errors for All Operations")
+    plt.xlabel("Large Number (log scale)")
+    plt.ylabel("Relative Error (log scale)")
+    plt.legend()
+
+    plt.tight_layout()
+    plt.show()
+
 # Step 5: Run the test with a range of large numbers and a constant small number
-min_large_number = 1e3   # Start at 10
+min_large_number = 1e3   # Start at 10,000
+max_large_number = 1e16  # Go up to 10^16
+small_number = 1e-13     # Keep the small number constant
+num_steps = 30           # Number of steps in the range
+
+test_floating_point_precision_range_with_plot(min_large_number, max_large_number, small_number, num_steps)
