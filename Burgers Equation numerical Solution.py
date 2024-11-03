@@ -61,6 +61,8 @@ for t in np.arange(dt, T_final + dt, dt):
         v_n = v_n + dt * (-(u_n * dvdx + v_n * dvdy) + (d2vdx2 + d2vdy2) / Re)
 
     # Exact solution for comparison (at time t)
+    u_numerical , v_numerical= u_n,v_n
+
     u_exact, v_exact = exact_solution(X, Y, t)
 
 # Time taken
