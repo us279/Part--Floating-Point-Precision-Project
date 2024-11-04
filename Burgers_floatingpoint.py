@@ -8,7 +8,7 @@ Lx, Ly = 1.0, 1.0
 nx, ny = 100, 100
 dx, dy = Lx / (nx - 1), Ly / (ny - 1)
 dt = 0.001
-T_final = 10
+T_final = 0.1
 
 # Grid
 x = np.linspace(0, Lx, nx)
