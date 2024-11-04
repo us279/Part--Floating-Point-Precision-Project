@@ -16,6 +16,8 @@ y = np.linspace(0, Ly, ny)
 X, Y = np.meshgrid(x, y)
 
 def testing_fp_precision(precision):
+    fp_ = {np.float64: 64, np.float32: 32, np.float16: 16}.get(precision)
+
     from time import time
     def exact_solution(xg, yg, t):
         u = np.float64(3/4 - 1./(4 * (1 + np.exp((-4 * xg + 4 * yg - t) * Re / 32))))
@@ -73,20 +75,31 @@ def testing_fp_precision(precision):
     def compute_error(u_exact, v_exact, u_numerical, v_numerical):
         error_u = np.abs(u_exact - u_numerical)
         error_v = np.abs(v_exact - v_numerical)
+        
         max_error_u = np.max(error_u)
         mean_error_u = np.mean(error_u)
+        rmse_u = np.sqrt(np.mean(error_u**2))
+        
         max_error_v = np.max(error_v)
         mean_error_v = np.mean(error_v)
-        return (max_error_u, mean_error_u, max_error_v, mean_error_v)
-    max_error_u, mean_error_u, max_error_v, mean_error_v = compute_error(u_exact, v_exact, u_numerical, v_numerical)
-    print("For precision " + str(precision) + "max error in u is = " + str(max_error_u))
-    print("For precision " + str(precision) + "mean error in u is = " + str(mean_error_u))
-    print("For precision " + str(precision) + "max error in v is = " + str(max_error_v))
-    print("For precision " + str(precision) + "mean error in v is = " + str(mean_error_v))
+        rmse_v = np.sqrt(np.mean(error_v**2))
+        
+        return (max_error_u, mean_error_u, rmse_u, max_error_v, mean_error_v, rmse_v)
+
+    max_error_u, mean_error_u,rsme_u, max_error_v, mean_error_v, rsme_v = compute_error(u_exact, v_exact, u_numerical, v_numerical)
+    print("For a fp precision " + str(fp_) + "max error in u is = " + str(max_error_u))
+    print("For a fp precision " + str(fp_) + "mean error in u is = " + str(mean_error_u))
+    print("For a fp precision " + str(fp_) + "root mean squared error in u is = " + str(rsme_u))
+
+    print("For a fp precision " + str(fp_) + "max error in v is = " + str(max_error_v))
+    print("For a fp precision " + str(fp_) + "mean error in v is = " + str(mean_error_v))
+    print("For a fp precision " + str(fp_) + "root mean squared error in v is = " + str(rsme_v))
 
 
     # Plotting
     fig, axs = plt.subplots(2, 3, figsize=(18, 12))
+    
+    fig.suptitle('Plots for a floating point precision of ' + str(fp_) , fontsize=16)
 
     # Plot exact u
     cf1 = axs[0, 0].contourf(X, Y, u_exact,levels= 100, cmap='viridis')
