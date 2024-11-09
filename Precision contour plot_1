@@ -1,0 +1,46 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Parameters
+Re = 100.0
+Lx, Ly = 1.0, 1.0
+dt = 0.001
+T_final = 0.1
+precisions = [np.float16, np.float32, np.float64]
+resolutions = [(50, 50), (100, 100), (150, 150)]
+
+def compute_mse(u_exact, u_numerical):
+    return np.mean((u_exact - u_numerical)**2)
+
+def testing_fp_precision(nx, ny, precision):
+    dx, dy = Lx / (nx - 1), Ly / (ny - 1)
+    x = np.linspace(0, Lx, nx)
+    y = np.linspace(0, Ly, ny)
+    X, Y = np.meshgrid(x, y)
+
+    # Function to simulate and compute error
+    u_exact = np.sin(np.pi * X) * np.sin(np.pi * Y)  # Assume an example exact solution
+    u_numerical = precision(u_exact)  # Apply precision to the exact solution as a simple numerical solution
+
+    mse = compute_mse(u_exact, u_numerical)
+    return mse
+
+mse_data = np.zeros((len(precisions), len(resolutions)))
+
+# Collect data
+for i, precision in enumerate(precisions):
+    for j, (nx, ny) in enumerate(resolutions):
+        mse = testing_fp_precision(nx, ny, precision)
+        mse_data[i, j] = mse
+
+# Plotting
+fig, ax = plt.subplots()
+x_ticks = [f"{nx}x{ny}" for (nx, ny) in resolutions]
+y_ticks = [f"{precision.__name__}" for precision in precisions]
+cs = ax.contourf(x_ticks, y_ticks, mse_data, levels=50, cmap='viridis')
+cbar = fig.colorbar(cs)
+cbar.set_label('Mean Squared Error')
+ax.set_xlabel('Grid Resolution (nx x ny)')
+ax.set_ylabel('Floating-point Precision')
+ax.set_title('Contour Plot of MSE by Grid Resolution and Precision')
+plt.show()

@@ -58,6 +58,12 @@ def testing_fp_precision(precision):
             u_next = precision(u_numerical + dt * dudt)
             v_next = precision(v_numerical + dt * dvdt)
 
+        u_exact, v_exact = exact_solution(X, Y, t)
+        u_next[0, :] = precision(u_exact[0, :])
+        u_next[:, 0] = precision(u_exact[:, 0])
+        v_next[0, :]= precision(v_exact[0, :])
+        v_next[:, 0] = precision(v_exact[:, 0])
+
         # Update previous time step derivatives
         prev_dudt, prev_dvdt = dudt, dvdt
 
@@ -150,3 +156,4 @@ def testing_fp_precision(precision):
 
 for fp in [np.float64, np.float32, np.float16]:
     testing_fp_precision(fp)
+

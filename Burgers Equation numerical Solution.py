@@ -7,6 +7,8 @@ Re = 100.0
 Lx, Ly = 1.0, 1.0
 nx, ny = 100, 100
 dx, dy = Lx / (nx - 1), Ly / (ny - 1)
+#dt = CFL * min(x,y)/max(sqrt(x^2 + y^2))
+
 dt = 0.001
 T_final = 1
 
