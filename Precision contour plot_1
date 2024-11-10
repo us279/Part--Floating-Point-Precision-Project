@@ -1,46 +1,110 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # Parameters
 Re = 100.0
 Lx, Ly = 1.0, 1.0
-dt = 0.001
+grid_sizes = [(2**n, 2**n) for n in range(4, 7)]  # grid sizes from 16x16 to 64x64
 T_final = 0.1
-precisions = [np.float16, np.float32, np.float64]
-resolutions = [(50, 50), (100, 100), (150, 150)]
+CFL = 0.5
 
-def compute_mse(u_exact, u_numerical):
-    return np.mean((u_exact - u_numerical)**2)
+# DataFrame to store errors and time
+error_df = pd.DataFrame()
 
-def testing_fp_precision(nx, ny, precision):
+def testing_fp_precision(nx, ny, precision, fp_label):
     dx, dy = Lx / (nx - 1), Ly / (ny - 1)
-    x = np.linspace(0, Lx, nx)
-    y = np.linspace(0, Ly, ny)
+    x = np.linspace(0, Lx, nx, dtype=precision)
+    y = np.linspace(0, Ly, ny, dtype=precision)
     X, Y = np.meshgrid(x, y)
 
-    # Function to simulate and compute error
-    u_exact = np.sin(np.pi * X) * np.sin(np.pi * Y)  # Assume an example exact solution
-    u_numerical = precision(u_exact)  # Apply precision to the exact solution as a simple numerical solution
+    # Calculate dt using the CFL condition
+    distance = np.sqrt(X**2 + Y**2)
+    max_distance = np.max(distance)
+    dt = CFL * min(dx, dy) / max_distance
 
-    mse = compute_mse(u_exact, u_numerical)
-    return mse
+    def exact_solution(xg, yg, t):
+        u = precision(3/4 - 1./(4 * (1 + np.exp((-4 * xg + 4 * yg - t) * Re / 32))))
+        v = precision(3/4 + 1./(4 * (1 + np.exp((-4 * xg + 4 * yg - t) * Re / 32))))
+        return u, v
 
-mse_data = np.zeros((len(precisions), len(resolutions)))
+    # Initialize arrays using the exact solution
+    u_numerical, v_numerical = exact_solution(X, Y, 0)
+    u_next = np.zeros_like(u_numerical)
+    v_next = np.zeros_like(v_numerical)
+    prev_dudt = np.zeros_like(u_numerical)
+    prev_dvdt = np.zeros_like(v_numerical)
 
-# Collect data
-for i, precision in enumerate(precisions):
-    for j, (nx, ny) in enumerate(resolutions):
-        mse = testing_fp_precision(nx, ny, precision)
-        mse_data[i, j] = mse
+    from time import time
+    t0 = time()
+    for t in np.arange(0, T_final, dt):
+        # Define u_exact and v_exact at the beginning of the loop
+        u_exact, v_exact = exact_solution(X, Y, t)
 
-# Plotting
-fig, ax = plt.subplots()
-x_ticks = [f"{nx}x{ny}" for (nx, ny) in resolutions]
-y_ticks = [f"{precision.__name__}" for precision in precisions]
-cs = ax.contourf(x_ticks, y_ticks, mse_data, levels=50, cmap='viridis')
-cbar = fig.colorbar(cs)
-cbar.set_label('Mean Squared Error')
-ax.set_xlabel('Grid Resolution (nx x ny)')
-ax.set_ylabel('Floating-point Precision')
-ax.set_title('Contour Plot of MSE by Grid Resolution and Precision')
+        dudx, dudy = np.gradient(u_numerical, dx, dy)
+        dvdx, dvdy = np.gradient(v_numerical, dx, dy)
+        dudt = precision(-(u_numerical * dudx + v_numerical * dudy) + (np.gradient(dudx, dx)[0] + np.gradient(dudy, dy)[1]) / Re)
+        dvdt = precision(-(u_numerical * dvdx + v_numerical * dvdy) + (np.gradient(dvdx, dx)[0] + np.gradient(dvdy, dy)[1]) / Re)
+
+        if t > 0:
+            u_next = precision(u_numerical + dt * (1.5 * dudt - 0.5 * prev_dudt))
+            v_next = precision(v_numerical + dt * (1.5 * dvdt - 0.5 * prev_dvdt))
+        else:
+            u_next = precision(u_numerical + dt * dudt)
+            v_next = precision(v_numerical + dt * dvdt)
+
+        # Apply boundary conditions
+        u_next[0, :], u_next[-1, :], u_next[:, 0], u_next[:, -1] = u_exact[0, :], u_exact[-1, :], u_exact[:, 0], u_exact[:, -1]
+        v_next[0, :], v_next[-1, :], v_next[:, 0], v_next[:, -1] = v_exact[0, :], v_exact[-1, :], v_exact[:, 0], v_exact[:, -1]
+
+        # Swap arrays for the next step
+        u_numerical, u_next = u_next, u_numerical
+        v_numerical, v_next = v_next, v_numerical
+        prev_dudt, prev_dvdt = dudt, dvdt
+
+    # Capture the exact solution at final time step for error computation
+    u_exact, v_exact = exact_solution(X, Y, T_final)
+    time_taken = time() - t0
+    errors = {
+        'Grid Size': nx * ny,
+        'Precision': fp_label,
+        'Max Error U': np.max(np.abs(u_exact - u_numerical)),
+        'Mean Error U': np.mean(np.abs(u_exact - u_numerical)),
+        'RMSE U': np.sqrt(np.mean(np.abs(u_exact - u_numerical)**2)),
+        'Max Error V': np.max(np.abs(v_exact - v_numerical)),
+        'Mean Error V': np.mean(np.abs(v_exact - v_numerical)),
+        'RMSE V': np.sqrt(np.mean(np.abs(v_exact - v_numerical)**2)),
+        'Time Taken': time_taken
+    }
+    return errors
+
+for nx, ny in grid_sizes:
+    for precision, label in [(np.float16, '16'), (np.float32, '32'), (np.float64, '64')]:
+        error_data = testing_fp_precision(nx, ny, precision, label)
+        error_df = error_df.append(error_data, ignore_index=True)
+
+# Create contour plots for U
+fig, axs = plt.subplots(1, 3, figsize=(18, 6))
+titles = ['Mean Error U', 'Max Error U', 'RMSE U']
+for ax, metric in zip(axs, titles):
+    data_pivot = error_df.pivot('Precision', 'Grid Size', metric)
+    CS = ax.contourf(data_pivot.columns, data_pivot.index, data_pivot.values, levels=20, cmap='viridis')
+    fig.colorbar(CS, ax=ax)
+    ax.set_title(metric)
+    ax.set_xlabel('Grid Size')
+    ax.set_ylabel('Precision')
+fig.tight_layout()
+plt.show()
+
+# Create contour plots for V
+fig, axs = plt.subplots(1, 3, figsize=(18, 6))
+titles = ['Mean Error V', 'Max Error V', 'RMSE V']
+for ax, metric in zip(axs, titles):
+    data_pivot = error_df.pivot('Precision', 'Grid Size', metric)
+    CS = ax.contourf(data_pivot.columns, data_pivot.index, data_pivot.values, levels=20, cmap='viridis')
+    fig.colorbar(CS, ax=ax)
+    ax.set_title(metric)
+    ax.set_xlabel('Grid Size')
+    ax.set_ylabel('Precision')
+fig.tight_layout()
 plt.show()
