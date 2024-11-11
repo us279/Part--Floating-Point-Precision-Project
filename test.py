@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+from openpyxl import load_workbook
 
 # Parameters
 Re = 100.0
@@ -15,13 +16,16 @@ y = np.linspace(0, Ly, ny, dtype=np.float64)
 X, Y = np.meshgrid(x, y)
 
 # Calculate the appropriate dt using the CFL condition
-CFL = 0.5  # This is a typical value; adjust based on stability needs and problem specifics
+CFL = 0.5  
 distance = np.sqrt(X**2 + Y**2)
 max_distance = np.max(distance)
 dt = CFL * min(dx, dy) / max_distance
+file_path = '/Users/uday03/Desktop/Part IIB Project/code/Part--Floating-Point-Precision-Project/Figs/DF_results_test.xlsx'
+test_name = input('What are you testing?')
 
 # DataFrame to store errors and time
 error_df = pd.DataFrame(columns=['Precision', 'Max Error U', 'Mean Error U', 'RMSE U', 'Max Error V', 'Mean Error V', 'RMSE V', 'Time Taken'])
+#error_df = pd.DataFrame(columns=['Precision','Mean Error U', 'Mean Error V', 'Time Taken'])
 
 def testing_fp_precision(precision):
     fp_ = {np.float64: 'float64', np.float32: 'float32', np.float16: 'float16'}.get(precision)
@@ -60,6 +64,7 @@ def testing_fp_precision(precision):
         dvdx, dvdy = precision(dvdx), precision(dvdy)
         d2udx2, d2udy2 = precision(d2udx2), precision(d2udy2)
         d2vdx2, d2vdy2 = precision(d2vdx2), precision(d2vdy2)
+  
 
         # Update derivatives
         dudt = precision(-(u_numerical * dudx + v_numerical * dudy) + (d2udx2 + d2udy2) / Re)
@@ -99,6 +104,8 @@ def testing_fp_precision(precision):
 
     # Store errors and time in DataFrame
     errors = {
+        'Test': test_name,
+        'CFL': CFL,
         'Precision': fp_,
         'Max Error U': max_error_u,
         'Mean Error U': mean_error_u,
@@ -159,7 +166,7 @@ def testing_fp_precision(precision):
     axs[0, 2].set_ylabel('y')
 
     plt.tight_layout()
-    plt.show()
+    #plt.show()
 
     return errors
 
@@ -168,5 +175,16 @@ for fp in [np.float64, np.float32, np.float16]:
     error_data = testing_fp_precision(fp)
     error_df = error_df.append(error_data, ignore_index=True)
 
-# Display the DataFrame
+
 print(error_df)
+
+sheet_name = 'Sheet1'  # Specify the sheet name you want to update
+
+
+book = load_workbook(file_path)
+with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+    writer.book = book
+    writer.sheets = {ws.title: ws for ws in book.worksheets}
+    error_df.to_excel(writer, sheet_name=sheet_name, startrow=writer.sheets[sheet_name].max_row, index=False, header=False)
+
+

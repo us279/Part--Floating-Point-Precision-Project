@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import os
+
+save_folder = '/Users/uday03/Desktop/Part IIB Project/code/Part--Floating-Point-Precision-Project/Figs'
+os.makedirs(save_folder, exist_ok=True)
 
 # Parameters
 Re = 100.0
@@ -41,10 +45,24 @@ def testing_fp_precision(nx, ny, precision, fp_label):
         # Define u_exact and v_exact at the beginning of the loop
         u_exact, v_exact = exact_solution(X, Y, t)
 
+
         dudx, dudy = np.gradient(u_numerical, dx, dy)
         dvdx, dvdy = np.gradient(v_numerical, dx, dy)
-        dudt = precision(-(u_numerical * dudx + v_numerical * dudy) + (np.gradient(dudx, dx)[0] + np.gradient(dudy, dy)[1]) / Re)
-        dvdt = precision(-(u_numerical * dvdx + v_numerical * dvdy) + (np.gradient(dvdx, dx)[0] + np.gradient(dvdy, dy)[1]) / Re)
+        d2udx2, _ = np.gradient(dudx, dx)
+        _, d2udy2 = np.gradient(dudy, dy)
+        d2vdx2, _ = np.gradient(dvdx, dx)
+        _, d2vdy2 = np.gradient(dvdy, dy)
+
+        # Convert gradients to specified precision
+        dudx, dudy = precision(dudx), precision(dudy)
+        dvdx, dvdy = precision(dvdx), precision(dvdy)
+        d2udx2, d2udy2 = precision(d2udx2), precision(d2udy2)
+        d2vdx2, d2vdy2 = precision(d2vdx2), precision(d2vdy2)
+
+        # Update derivatives
+        dudt = precision(-(u_numerical * dudx + v_numerical * dudy) + (d2udx2 + d2udy2) / Re)
+        dvdt = precision(-(u_numerical * dvdx + v_numerical * dvdy) + (d2vdx2 + d2vdy2) / Re)
+
 
         if t > 0:
             u_next = precision(u_numerical + dt * (1.5 * dudt - 0.5 * prev_dudt))
@@ -84,6 +102,8 @@ for nx, ny in grid_sizes:
         error_df = error_df.append(error_data, ignore_index=True)
 
 # Create contour plots for U
+file_name_u = input("Enter the file name to save the figure for U (e.g., 'figure_U.png'): ")
+file_path_u = os.path.join(save_folder, file_name_u)
 fig, axs = plt.subplots(1, 3, figsize=(18, 6))
 titles = ['Mean Error U', 'Max Error U', 'RMSE U']
 for ax, metric in zip(axs, titles):
@@ -95,8 +115,11 @@ for ax, metric in zip(axs, titles):
     ax.set_ylabel('Precision')
 fig.tight_layout()
 plt.show()
+fig.savefig(file_path_u)
 
 # Create contour plots for V
+file_name_v = input("Enter the file name to save the figure for V (e.g., 'figure_V.png'): ")
+file_path_v = os.path.join(save_folder, file_name_v)
 fig, axs = plt.subplots(1, 3, figsize=(18, 6))
 titles = ['Mean Error V', 'Max Error V', 'RMSE V']
 for ax, metric in zip(axs, titles):
@@ -108,3 +131,4 @@ for ax, metric in zip(axs, titles):
     ax.set_ylabel('Precision')
 fig.tight_layout()
 plt.show()
+fig.savefig(file_path_v)
