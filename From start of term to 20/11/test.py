@@ -8,18 +8,21 @@ Re = 100.0
 Lx, Ly = 1.0, 1.0
 nx, ny = 100, 100
 dx, dy = Lx / (nx - 1), Ly / (ny - 1)
-T_final = 0.1
+T_final = 0.5
 
+
+CFL = 0.5
+u,v =  exact_solution(X,Y,0)
+speed = np.sqrt(u**2 + v**2)
+max_speed = np.max(speed)
+dt = CFL * min(dx, dy) / max_speed
 # Grid
 x = np.linspace(0, Lx, nx, dtype=np.float64)
 y = np.linspace(0, Ly, ny, dtype=np.float64)
 X, Y = np.meshgrid(x, y)
 
 # Calculate the appropriate dt using the CFL condition
-CFL = 0.5  
-distance = np.sqrt(X**2 + Y**2)
-max_distance = np.max(distance)
-dt = CFL * min(dx, dy) / max_distance
+
 file_path = '/Users/uday03/Desktop/Part IIB Project/code/Part--Floating-Point-Precision-Project/Figs/DF_results_test.xlsx'
 test_name = input('What are you testing?')
 
@@ -117,56 +120,60 @@ def testing_fp_precision(precision):
     }
 
     # Plotting
+
+    print(u_numerical[1,1])
+
+
     fig, axs = plt.subplots(2, 3, figsize=(18, 12))
     
-    fig.suptitle('Plots for a floating point precision of ' + str(fp_) , fontsize=16)
+    # fig.suptitle('Plots for a floating point precision of ' + str(fp_) , fontsize=16)
 
-    # Plot exact u
-    cf1 = axs[0, 0].contourf(X, Y, u_exact,levels= 100, cmap='viridis')
-    plt.colorbar(cf1, ax=axs[0, 0], orientation='vertical', label='u')
-    axs[0, 0].set_title('Exact Solution for u')
-    axs[0, 0].set_xlabel('x')
-    axs[0, 0].set_ylabel('y')
+    # # Plot exact u
+    # cf1 = axs[0, 0].contourf(X, Y, u_exact,levels= 100, cmap='viridis')
+    # plt.colorbar(cf1, ax=axs[0, 0], orientation='vertical', label='u')
+    # axs[0, 0].set_title('Exact Solution for u')
+    # axs[0, 0].set_xlabel('x')
+    # axs[0, 0].set_ylabel('y')
 
-    # Plot exact v
-    cf2 = axs[0, 1].contourf(X, Y, v_exact,levels= 100, cmap='viridis')
-    plt.colorbar(cf2, ax=axs[0, 1], orientation='vertical', label='v')
-    axs[0, 1].set_title('Exact Solution for v')
-    axs[0, 1].set_xlabel('x')
-    axs[0, 1].set_ylabel('y')
+    # # Plot exact v
+    # cf2 = axs[0, 1].contourf(X, Y, v_exact,levels= 100, cmap='viridis')
+    # plt.colorbar(cf2, ax=axs[0, 1], orientation='vertical', label='v')
+    # axs[0, 1].set_title('Exact Solution for v')
+    # axs[0, 1].set_xlabel('x')
+    # axs[0, 1].set_ylabel('y')
 
-    # Plot numerical u
-    cf3 = axs[1, 0].contourf(X, Y, u_numerical,levels= 100, cmap='viridis')
-    plt.colorbar(cf3, ax=axs[1, 0], orientation='vertical', label='u')
-    axs[1, 0].set_title('Numerical Solution for u')
-    axs[1, 0].set_xlabel('x')
-    axs[1, 0].set_ylabel('y')
+    # # Plot numerical u
+    # cf3 = axs[1, 0].contourf(X, Y, u_numerical,levels= 100, cmap='viridis')
+    # plt.colorbar(cf3, ax=axs[1, 0], orientation='vertical', label='u')
+    # axs[1, 0].set_title('Numerical Solution for u')
+    # axs[1, 0].set_xlabel('x')
+    # axs[1, 0].set_ylabel('y')
 
-    # Plot numerical v
-    cf4 = axs[1, 1].contourf(X, Y, v_numerical,levels= 100, cmap='viridis')
-    plt.colorbar(cf4, ax=axs[1, 1], orientation='vertical', label='v')
-    axs[1, 1].set_title('Numerical Solution for v')
-    axs[1, 1].set_xlabel('x')
-    axs[1, 1].set_ylabel('y')
+    # # Plot numerical v
+    # cf4 = axs[1, 1].contourf(X, Y, v_numerical,levels= 100, cmap='viridis')
+    # plt.colorbar(cf4, ax=axs[1, 1], orientation='vertical', label='v')
+    # axs[1, 1].set_title('Numerical Solution for v')
+    # axs[1, 1].set_xlabel('x')
+    # axs[1, 1].set_ylabel('y')
 
-    # Plot difference between exact and numerical u
-    diff_u = np.abs(u_exact - u_numerical)
-    cf5 = axs[1, 2].contourf(X, Y, diff_u,levels= 100, cmap='magma')
-    plt.colorbar(cf5, ax=axs[1, 2], orientation='vertical', label='|u_exact - u_numerical|')
-    axs[1, 2].set_title('Absolute Difference (u)')
-    axs[1, 2].set_xlabel('x')
-    axs[1, 2].set_ylabel('y')
+    # # Plot difference between exact and numerical u
+    # diff_u = np.abs(u_exact - u_numerical)
+    # cf5 = axs[1, 2].contourf(X, Y, diff_u,levels= 100, cmap='magma')
+    # plt.colorbar(cf5, ax=axs[1, 2], orientation='vertical', label='|u_exact - u_numerical|')
+    # axs[1, 2].set_title('Absolute Difference (u)')
+    # axs[1, 2].set_xlabel('x')
+    # axs[1, 2].set_ylabel('y')
 
-    # Plot difference between exact and numerical v
-    diff_v = np.abs(v_exact - v_numerical)
-    cf6 = axs[0, 2].contourf(X, Y, diff_v,levels= 100, cmap='magma')
-    plt.colorbar(cf6, ax=axs[0, 2], orientation='vertical', label='|v_exact - v_numerical|')
-    axs[0, 2].set_title('Absolute Difference (v)')
-    axs[0, 2].set_xlabel('x')
-    axs[0, 2].set_ylabel('y')
+    # # Plot difference between exact and numerical v
+    # diff_v = np.abs(v_exact - v_numerical)
+    # cf6 = axs[0, 2].contourf(X, Y, diff_v,levels= 100, cmap='magma')
+    # plt.colorbar(cf6, ax=axs[0, 2], orientation='vertical', label='|v_exact - v_numerical|')
+    # axs[0, 2].set_title('Absolute Difference (v)')
+    # axs[0, 2].set_xlabel('x')
+    # axs[0, 2].set_ylabel('y')
 
-    plt.tight_layout()
-    #plt.show()
+    # plt.tight_layout()
+    plt.show()
 
     return errors
 

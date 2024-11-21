@@ -10,7 +10,7 @@ os.makedirs(save_folder, exist_ok=True)
 Re = 100.0
 Lx, Ly = 1.0, 1.0
 grid_sizes = [(2**n, 2**n) for n in range(4, 7)]  # grid sizes from 16x16 to 64x64
-T_final = 0.1
+T_final = 0.5
 CFL = 0.5
 
 # DataFrame to store errors and time
@@ -23,14 +23,18 @@ def testing_fp_precision(nx, ny, precision, fp_label):
     X, Y = np.meshgrid(x, y)
 
     # Calculate dt using the CFL condition
-    distance = np.sqrt(X**2 + Y**2)
-    max_distance = np.max(distance)
-    dt = CFL * min(dx, dy) / max_distance
+    n = 0
+    
 
     def exact_solution(xg, yg, t):
         u = precision(3/4 - 1./(4 * (1 + np.exp((-4 * xg + 4 * yg - t) * Re / 32))))
         v = precision(3/4 + 1./(4 * (1 + np.exp((-4 * xg + 4 * yg - t) * Re / 32))))
         return u, v
+    max_u,max_v = exact_solution(X,Y,0)
+    speed = np.sqrt(max_u**2 + max_v**2)
+    max_speed = np.max(speed)
+    dt = CFL * min(dx, dy) / max_speed
+    print(max_speed)
 
     # Initialize arrays using the exact solution
     u_numerical, v_numerical = exact_solution(X, Y, 0)
@@ -79,6 +83,8 @@ def testing_fp_precision(nx, ny, precision, fp_label):
         u_numerical, u_next = u_next, u_numerical
         v_numerical, v_next = v_next, v_numerical
         prev_dudt, prev_dvdt = dudt, dvdt
+        n += 1
+        print(n)
 
     # Capture the exact solution at final time step for error computation
     u_exact, v_exact = exact_solution(X, Y, T_final)

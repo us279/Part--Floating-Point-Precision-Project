@@ -36,23 +36,28 @@ def solve_burgers(x, t, nu, dx, dt):
 
 # Parameters
 L = 1.0     # Length of the domain
-T = 1.0     # Total time
+#T = 1.0     # Total time
 N = 100     # Number of spatial points
-M = 200     # Number of time points
+#M = 200     # Number of time points
 nu = 0.01   # Viscosity coefficient
 x = np.linspace(0, L, N)
-t = np.linspace(0, T, M)
+#t = np.linspace(0, T, M)
 dx = x[1] - x[0]
-dt = t[1] - t[0]
+#dt = t[1] - t[0]
 
 # Solve
-U = solve_burgers(x, t, nu, dx, dt)
+for T in range(1,10):   # Total time
+    M = 100*T
+    t = np.linspace(0, T, M)
+    dt = t[1] - t[0]
+    U = solve_burgers(x, t, nu, dx, dt)
 
-# Plotting
-plt.figure(figsize=(10, 5))
-plt.imshow(U, extent=[0, T, 0, L], origin='lower', aspect='auto')
-plt.colorbar(label='u(x,t)')
-plt.xlabel('Time')
-plt.ylabel('Space')
-plt.title('Numerical solution of the Burgers’ equation')
-plt.show()
+
+    # Plotting
+    plt.figure(figsize=(10, 5))
+    plt.imshow(U, extent=[0, T, 0, L], origin='lower', aspect='auto')
+    plt.colorbar(label='u(x,t)')
+    plt.xlabel('Time')
+    plt.ylabel('Space')
+    plt.title('Numerical solution of the Burgers’ equation')
+    plt.show()

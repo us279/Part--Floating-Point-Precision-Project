@@ -7,10 +7,6 @@ Re = 100.0
 Lx, Ly = 1.0, 1.0
 nx, ny = 100, 100
 dx, dy = Lx / (nx - 1), Ly / (ny - 1)
-#dt = CFL * min(x,y)/max(sqrt(x^2 + y^2))
-
-dt = 0.001
-T_final = 1
 
 # Grid
 x = np.linspace(0, Lx, nx)
@@ -23,18 +19,23 @@ def exact_solution(xg, yg, t):
     v = 3/4 + 1./(4 * (1 + np.exp((-4 * xg + 4 * yg - t) * Re / 32)))
     return u, v
 
+CFL = 0.01
+u, v = exact_solution(X, Y, 0)
+speed = np.sqrt(u**2 + v**2)
+print("This is the mean speed:" + str(np.mean(speed)))
+max_speed = np.max(speed)
+print(max_speed)
+dt = CFL * ((dx**2 + dy**2)**(0.5)) / max_speed
+T_final = 0.35
+
 # Initialize u and v arrays using the exact solution
-#u_numerical, v_numerical = exact_solution(X, Y, 0)
-
 u_exact, v_exact = exact_solution(X, Y, 0)
-u_numerical = np.zeros((ny, nx))
-v_numerical = np.zeros((ny,nx))
-u_numerical, v_numerical = u_exact, v_exact
-u_numerical[0, :], u_numerical[-1, :] = u_exact[0, :], u_exact[-1, :]
-u_numerical[:, 0], u_numerical[:, -1] = u_exact[:, 0], u_exact[:, -1]
-v_numerical[0, :], v_numerical[-1, :] = v_exact[0, :], v_exact[-1, :]
-v_numerical[:, 0], v_numerical[:, -1] = v_exact[:, 0], v_exact[:, -1]
+u_numerical = u_exact.copy()
+v_numerical = v_exact.copy()
 
+# Arrays for storing u, v values at a specific point over time
+u_time_series = []
+v_time_series = []
 
 # Temporary arrays to hold new time step calculations
 u_next = np.zeros_like(u_numerical)
@@ -45,36 +46,33 @@ prev_dudt = np.zeros_like(u_numerical)
 prev_dvdt = np.zeros_like(v_numerical)
 
 # Time integration loop for numerical solution
-# Time integration loop for numerical solution
 t0 = time()
-
+n = 0
 for t in np.arange(dt, T_final + dt, dt):
+    n += 1
     # Compute gradients
     dudx, dudy = np.gradient(u_numerical, dx, dy)
     dvdx, dvdy = np.gradient(v_numerical, dx, dy)
-    d2udx2, _ = np.gradient(dudx, dx)
-    _, d2udy2 = np.gradient(dudy, dy)
-    d2vdx2, _ = np.gradient(dvdx, dx)
-    _, d2vdy2 = np.gradient(dvdy, dy)
+    d2udx2, d2udy2 = np.gradient(dudx, dx, dy)
+    d2vdx2, d2vdy2 = np.gradient(dvdx, dx, dy)
 
     # Update derivatives
     dudt = -(u_numerical * dudx + v_numerical * dudy) + (d2udx2 + d2udy2) / Re
     dvdt = -(u_numerical * dvdx + v_numerical * dvdy) + (d2vdx2 + d2vdy2) / Re
 
-    # Adams-Bashforth 2nd Order for t > dt
-    if t > dt:
-        u_next = u_numerical + dt * (1.5 * dudt - 0.5 * prev_dudt)
-        v_next = v_numerical + dt * (1.5 * dvdt - 0.5 * prev_dvdt)
-    else:  # Euler method for the first step
+
+    if t == dt:
         u_next = u_numerical + dt * dudt
         v_next = v_numerical + dt * dvdt
+    else:  
+        u_next = u_numerical + dt * 0.5 * (3 * dudt - prev_dudt)
+        v_next = v_numerical + dt * 0.5 * (3 * dvdt - prev_dvdt)
 
-    # Apply boundary conditions: Set boundary values to the exact solution at each time point
+
+    # Apply boundary conditions
     u_exact, v_exact = exact_solution(X, Y, t)
-    u_next[0, :] = u_exact[0, :]
-    u_next[:, 0] = u_exact[:, 0]
-    v_next[0, :]= v_exact[0, :]
-    v_next[:, 0] = v_exact[:, 0]
+    u_next[0, :], u_next[:, 0] = u_exact[0, :], u_exact[:, 0]
+    v_next[0, :], v_next[:, 0] = v_exact[0, :], v_exact[:, 0]
 
     # Update previous time step derivatives
     prev_dudt, prev_dvdt = dudt, dvdt
@@ -83,14 +81,40 @@ for t in np.arange(dt, T_final + dt, dt):
     u_numerical, u_next = u_next, u_numerical
     v_numerical, v_next = v_next, v_numerical
 
+    # Record time series or compute visualization data as needed
+
     
 
-    #Compute exact solution for visualization or error analysis
-    if t == T_final+dt:
-        u_exact, v_exact = exact_solution(X, Y, t)
+
+# Select the middle index in the y-direction
+mid_y_idx = ny // 2
+
+# Extract u and v along x at the middle y-coordinate
+u_mid_y = u_numerical[mid_y_idx, :]
+v_mid_y = v_numerical[mid_y_idx, :]
+
+# Plotting
+fig, axs = plt.subplots(1, 2, figsize=(12, 6))
+
+# Plot numerical u along x at mid y
+axs[0].plot(x, u_mid_y, label='Numerical u at mid y')
+axs[0].set_title('Numerical u vs. x at Mid y')
+axs[0].set_xlabel('x')
+axs[0].set_ylabel('u')
+axs[0].legend()
+
+# Plot numerical v along x at mid y
+axs[1].plot(x, v_mid_y, label='Numerical v at mid y')
+axs[1].set_title('Numerical v vs. x at Mid y')
+axs[1].set_xlabel('x')
+axs[1].set_ylabel('v')
+axs[1].legend()
+
+plt.show()
 
 # Time taken
 print(f"Time taken: {time() - t0:.2f} seconds")
+print(f"Number of iterations:{n}")
 
 # Plotting
 fig, axs = plt.subplots(2, 3, figsize=(18, 12))
